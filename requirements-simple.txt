@@ -1,0 +1,13 @@
+# Core packages with pinned versions
+streamlit==1.39.0
+google-adk==1.20.0
+pandas==2.2.3
+pyarrow==18.1.0
+db-dtypes==1.3.1
+plotly==5.24.1
+scikit-learn==1.5.2
+requests==2.32.3
+
+# Google Cloud (let these resolve their own deps)
+google-cloud-bigquery==3.26.0
+google-cloud-secret-manager==2.21.1

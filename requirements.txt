@@ -1,0 +1,27 @@
+# Core web framework
+streamlit
+
+# HTTP requests
+requests
+
+# Google Cloud dependencies
+google-cloud-secret-manager
+google-cloud-bigquery
+
+# Google ADK (Agent Development Kit)
+google-adk
+
+# Gemini API
+google-generativeai
+
+# Data processing
+pandas
+
+# BigQuery to pandas conversion
+pyarrow
+db-dtypes  # Required for BigQuery data type handling
+
+
+
+plotly
+scikit-learn

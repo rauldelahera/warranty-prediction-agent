@@ -1,0 +1,35 @@
+# Python
+env/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment variables
+.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local proxy config (DO NOT PUSH)
+LOCAL_PROXY_CONFIG.txt
+
+# Streamlit
+.streamlit/
+
+# ADK
+.adk/
+
+# Local config (if needed)
+.env
+local_config.py
