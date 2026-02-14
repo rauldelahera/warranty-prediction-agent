@@ -7,36 +7,9 @@
 [![Gemini](https://img.shields.io/badge/Gemini_1.5-8E75B2?style=flat&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=streamlit&logoColor=white)](https://streamlit.io)
 
-An intelligent conversational agent that predicts vehicle warranty claims through natural language interaction. Built to demonstrate enterprise AI agent architecture, LLM integration, and ML deployment patterns.
+An intelligent conversational agent that predicts vehicle warranty claims through natural language interaction. Ask questions like *"What's the warranty risk for VIN 1HGCM82633A123456?"* and get ML-powered predictions with probability scores and cost estimates.
 
----
-
-## 🎯 Overview
-
-This platform showcases an end-to-end AI agent system where users can chat naturally about vehicles and receive ML-powered warranty predictions. The agent autonomously decides which tools to call based on conversation context.
-
-**Example Interaction:**
-
-```
-👤 User: "What's the warranty risk for VIN 1HGCM82633A123456?"
-
-🤖 Agent:
-Warranty Prediction for VIN 1HGCM82633A123456
-
-Prediction: Warranty claim likely
-Probability: 68.3% chance of claim
-Risk Level: MEDIUM RISK
-
-Recommendation: Standard quality checks recommended.
-Estimated Cost: $2,450 ± $380
-```
-
-**Key Features:**
-- 💬 **Natural Language Interface** - Ask questions in plain English
-- 🤖 **Autonomous Decision Making** - Agent chooses appropriate tools
-- 📊 **ML-Powered Predictions** - BigQuery ML models for classification & regression
-- 🔄 **Graceful Degradation** - Works even when ML services unavailable
-- ⚡ **Real-time Streaming** - Live response generation
+Built to demonstrate AI agent architecture, LLM integration, BigQuery ML, and serverless deployment on Google Cloud.
 
 ---
 
@@ -87,7 +60,7 @@ Estimated Cost: $2,450 ± $380
 
 ## 🚀 Try It Live
 
-**Live Demo:** [https://warranty-agent-1023331849991.us-central1.run.app](https://warranty-agent-1023331849991.us-central1.run.app)
+**Live Demo:** [https://warranty-agent-ptowuhxy5q-uc.a.run.app](https://warranty-agent-ptowuhxy5q-uc.a.run.app)
 
 <!-- Optional: Add screenshot here
 ![Warranty Agent Demo](docs/screenshot.png)
@@ -102,23 +75,59 @@ No installation required! Try asking:
 
 ## 🎓 What This Demonstrates
 
-This portfolio project showcases production-ready skills:
+This portfolio project showcases:
 
-| **Skill** | **Implementation** |
-|-----------|-------------------|
-| **AI Agent Development** | Google ADK framework with autonomous tool calling |
-| **LLM Integration** | Gemini API for natural language understanding |
-| **Tool Orchestration** | Agent decides which Python functions to call |
-| **ML Model Deployment** | BigQuery ML models in production workflows |
-| **Cloud Architecture** | Cloud Run serverless deployment |
-| **Secret Management** | GCP Secret Manager for API keys |
-| **Containerization** | Docker + Cloud Build for CI/CD |
-| **Full-Stack Engineering** | Backend (ADK agent) + Frontend (Streamlit) |
-| **Infrastructure as Code** | Dockerfile, SQL scripts, gcloud configurations |
-| **Error Handling** | Graceful degradation when services unavailable |
-| **API Design** | Clean interfaces between agent and tools |
-| **Configuration Management** | Environment-based config for dev/prod |
-| **DevOps** | Automated builds, deployments, and secret injection |
+**AI & ML Engineering:**
+- **AI Agent Development** - Google ADK framework with autonomous tool calling
+- **LLM Integration** - Gemini 1.5 Flash API for natural language understanding
+- **ML Model Training** - BigQuery ML with SQL (logistic regression + linear regression)
+- **ML Deployment** - Production ML inference integrated into conversational agent
+
+**Cloud & DevOps:**
+- **Serverless Architecture** - Cloud Run with auto-scaling and managed infrastructure
+- **Secret Management** - GCP Secret Manager for secure API key handling
+- **Containerization** - Docker + Cloud Build for automated deployments
+- **Infrastructure as Code** - SQL scripts, Dockerfiles, and gcloud configurations
+
+**Full-Stack Development:**
+- **Backend** - Python functions integrated with AI agent for business logic
+- **Frontend** - Streamlit chat UI with real-time response streaming
+
+---
+
+## 📊 Machine Learning Models
+
+This project uses **BigQuery ML** to train and deploy models entirely with SQL:
+
+**Model 1: Warranty Claim Classification**
+```sql
+CREATE OR REPLACE MODEL `warranty_models.claim_occurrence_model`
+OPTIONS(model_type='logistic_reg', input_label_cols=['has_warranty_claim'])
+AS SELECT model_year, make, vehicle_type, mileage, state, has_warranty_claim
+FROM `warranty_data.training_data`;
+```
+- **Type:** Logistic Regression
+- **Purpose:** Predicts probability of warranty claim (binary classification)
+- **Output:** Probability score (0-100%) + risk level
+
+**Model 2: Claim Cost Prediction**
+```sql
+CREATE OR REPLACE MODEL `warranty_models.total_cost_model`
+OPTIONS(model_type='linear_reg', input_label_cols=['total_claim_cost'])
+AS SELECT model_year, make, vehicle_type, mileage, state, total_claim_cost
+FROM `warranty_data.training_data` WHERE has_warranty_claim = TRUE;
+```
+- **Type:** Linear Regression
+- **Purpose:** Estimates total warranty claim cost
+- **Output:** Dollar amount prediction
+
+**Training Data:**
+- 1,000 synthetic vehicle records generated for demonstration
+- Features: VIN, make, model year, vehicle type, mileage, state
+- Labels: warranty claim occurrence (binary) and claim cost (continuous)
+- Created via SQL with `GENERATE_ARRAY` and randomization functions
+
+> **Note:** This is a portfolio/proof-of-concept project using synthetic data. In production, you'd train on real historical warranty claims data with proper data governance and compliance
 
 ---
 
@@ -349,68 +358,30 @@ The agent automatically learns when to use your tool based on its docstring!
 
 ---
 
-## 📁 Project Structure
+## 🧠 How It Works
+
+User asks a question in natural language → Gemini-powered agent understands intent and calls the appropriate Python tool → Tool queries BigQuery ML model via SQL → Agent formats ML predictions into conversational response → Streamed back to user in real-time.
+
+See the [Architecture](#🏗️-architecture) diagram above for the complete flow.
+
+<details>
+<summary><b>Click to expand: Project Structure</b></summary>
 
 ```
 warranty-prediction-agent/
-│
-├── agent_host_frontend/           # ADK Agent Configuration
-│   ├── __init__.py
-│   └── agent.py                   # Agent logic, system prompts, tool registration
-│
-├── tools/                         # Streamlit Application
-│   ├── app.py                     # Main entry point
-│   ├── home.py                    # Landing page
-│   ├── llm_service.py             # Gemini API wrapper
-│   ├── tools.py                   # Agent tool functions (predictions)
-│   ├── bigquery_service.py        # BigQuery client & queries
-│   └── pages/
-│       └── 1_🔮_Warranty_Agent.py # Chat interface page
-│
-├── config.py                      # Centralized configuration
-├── requirements.txt               # Python dependencies
-├── Dockerfile                     # Container image definition
-├── .dockerignore                  # Docker build exclusions
-├── setup_bigquery.sql             # BigQuery dataset & model setup
-├── QUICK_REFERENCE.py            # Developer command reference
-└── README.md                      # This file
+├── agent_host_frontend/agent.py   # ADK agent config, system prompts
+├── tools/
+│   ├── app.py                     # Streamlit entry point
+│   ├── tools.py                   # ML prediction functions
+│   ├── bigquery_service.py        # BigQuery client
+│   └── pages/1_🔮_Warranty_Agent.py  # Chat UI
+├── config.py                      # Environment configuration
+├── setup_bigquery.sql             # ML model training script
+├── Dockerfile                     # Container definition
+└── requirements.txt               # Python dependencies
 ```
 
----
-
-## 🧠 How It Works
-
-### 1. User Interaction
-User asks a question in natural language through the Streamlit chat interface.
-
-### 2. Agent Processing
-The ADK agent (powered by Gemini 1.5 Flash):
-- Parses natural language to understand intent
-- Decides autonomously which tool to call (if any)
-- Extracts and formats parameters (e.g., VIN number)
-
-### 3. Tool Execution
-Python functions in `tools/tools.py` execute business logic:
-```python
-def predict_warranty_cost(vin: str) -> str:
-    """Predict warranty claim probability for a specific vehicle VIN."""
-    # Validates VIN format
-    # Queries BigQuery ML model
-    # Formats response
-```
-
-### 4. ML Model Inference
-Tools query BigQuery ML models via SQL:
-```sql
-SELECT predicted_has_warranty_claim, predicted_probability
-FROM ML.PREDICT(
-  MODEL `warranty_models.claim_occurrence_model`,
-  (SELECT * FROM `training_data` WHERE vin = '...')
-)
-```
-
-### 5. Response Generation
-Agent formats ML results into conversational response and streams back to user.
+</details>
 
 ---
 
