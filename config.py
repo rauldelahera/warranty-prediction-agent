@@ -27,7 +27,7 @@ GEMINI_API = {
 # TODO: Create your own GCP project or use BigQuery sandbox (free)
 # Free BigQuery sandbox: https://cloud.google.com/bigquery/docs/sandbox
 BIGQUERY = {
-    "project": os.getenv("GCP_PROJECT_ID", "your-gcp-project-id"),  # Replace when you have a project
+    "project": os.getenv("GCP_PROJECT_ID", "warranty-prediction-demo"),
 }
 
 # Debug mode enabled when running locally

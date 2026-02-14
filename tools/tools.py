@@ -157,17 +157,13 @@ def predict_warranty_total_cost(vin: str) -> str:
     query = f"""
         SELECT
         vin,
-        -- The raw predicted log value
-        predicted_log_total_cost,
-        -- The predicted value converted back to dollars
-        ROUND(EXP(predicted_log_total_cost) - 1, 2) AS predicted_cost_usd,
-        -- The actual value converted back to dollars (if comparing)
-        ROUND(EXP(log_total_cost) - 1, 2) AS actual_cost_usd
+        predicted_total_claim_cost AS predicted_cost_usd
         FROM
         ML.PREDICT(MODEL `{BIGQUERY['project']}.warranty_models.total_cost_model`, (
             -- This subquery provides the features for prediction
-            -- It must have the same column names/types as the training data
-            SELECT * FROM `{BIGQUERY['project']}.warranty_data.cost_training_data` WHERE vin = '{vin}'
+            -- Get features from main training_data table (not just vehicles with claims)
+            SELECT model_year, make, vehicle_type, mileage, state, total_claim_cost, vin
+            FROM `{BIGQUERY['project']}.warranty_data.training_data` WHERE vin = '{vin}'
         ))
     """
     
