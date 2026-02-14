@@ -33,3 +33,6 @@ LOCAL_PROXY_CONFIG.txt
 # Local config (if needed)
 .env
 local_config.py
+
+# Personal reference (not for repo)
+PROJECT_SUMMARY.md
