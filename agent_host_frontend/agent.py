@@ -29,11 +29,16 @@ if not GEMINI_API["api_key"]:
     raise ValueError("GEMINI_API_KEY not configured")
 
 log.info(f"Successfully configured Gemini in {ENVIRONMENT} environment")
+log.info(f"Using model: {GEMINI_API['model']}")
 
 # Configure the Gemini model using ADK's native Gemini support
 model = Gemini(
-    model_name=GEMINI_API["model"],  # gemini-1.5-flash
+    model_name=GEMINI_API["model"],  # models/gemini-1.5-flash-latest
     api_key=GEMINI_API["api_key"],
+    generation_config={
+        "temperature": 0.1,  # Lower temperature for more focused responses
+        "max_output_tokens": 512,  # Limit response length to reduce token usage
+    }
 )
 
 
@@ -67,29 +72,20 @@ root_agent = Agent(
     model=model,  # The Gemini model for understanding and reasoning
     name='root_agent',  # Agent identifier
     description='A specialist for vehicle warranty prediction.',  # What the agent does
-    instruction='''
-You are an expert Warranty Prediction specialist with TWO capabilities:
+    instruction='''You are a Warranty Prediction specialist. Analyze vehicle VINs to predict warranty risks and costs.
 
-1. WARRANTY PREDICTION (ML Model) - Predict warranty claim risk for specific vehicles
-2. TOTAL COST ESTIMATION (ML Model) - Estimate total warranty claim cost for specific vehicles
+TOOLS:
+• predict_warranty_cost(vin) - Get warranty claim probability for a VIN
+• predict_warranty_total_cost(vin) - Get estimated warranty cost for a VIN
 
-=== WARRANTY PREDICTION TOOL ===
-- predict_warranty_cost(vin): Predict warranty claim probability for a specific vehicle VIN using ML model.
+RULES:
+1. Extract VIN from user query
+2. Call appropriate tool(s) ONCE per VIN
+3. Present results clearly to user
+4. DO NOT retry on errors - report them directly
+5. After receiving tool results, format and present them immediately
 
-
-=== TOTAL COST ESTIMATION TOOL ===
-- predict_warranty_total_cost(vin): Predict warranty claim total cost for a specific vehicle VIN using ML model.
-
-CRITICAL RULES:
-- Call the tools ONLY ONCE per VIN
-- After receiving prediction results, present them to the user and STOP
-- Do NOT retry or call the tool multiple times with the same VIN
-- If the tool returns an error, report it to the user and ask for clarification - do not retry automatically
-- Once you have prediction results, your task is complete
-
-
-IMPORTANT: Do not retry failed queries multiple times. Try once, report results or errors, and stop.
-''',  # How to behave
+Be concise and direct.''',  # How to behave
     before_tool_callback=[tool_call],  # Functions to run before each tool call
     tools=[
         # Warranty prediction ML model

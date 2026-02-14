@@ -19,7 +19,7 @@ PROXIES = {
 # Gemini API Configuration (FREE tier available)
 # Get your free API key at: https://aistudio.google.com/app/apikey
 GEMINI_API = {
-    "model": "gemini-1.5-flash",  # Free tier: 15 req/min, 1M tokens/day
+    "model": "models/gemini-1.5-flash-latest",  # Explicitly use 1.5-flash (higher quota than 2.5)
     "api_key": os.getenv("GEMINI_API_KEY"),  # Set this in your environment
 }
 

@@ -85,15 +85,216 @@ Estimated Cost: $2,450 ± $380
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Try It Live
+
+**Live Demo:** [https://warranty-agent-1023331849991.us-central1.run.app](https://warranty-agent-1023331849991.us-central1.run.app)
+
+<!-- Optional: Add screenshot here
+![Warranty Agent Demo](docs/screenshot.png)
+-->
+
+No installation required! Try asking:
+- *"What's the warranty risk for VIN 1HGBH41JXMN100001?"*
+- *"Predict both probability and cost"*
+- *"What's the claim likelihood for VIN 1HGBH41JXMN100334?"*
+
+---
+
+## 🎓 What This Demonstrates
+
+This portfolio project showcases production-ready skills:
+
+| **Skill** | **Implementation** |
+|-----------|-------------------|
+| **AI Agent Development** | Google ADK framework with autonomous tool calling |
+| **LLM Integration** | Gemini API for natural language understanding |
+| **Tool Orchestration** | Agent decides which Python functions to call |
+| **ML Model Deployment** | BigQuery ML models in production workflows |
+| **Cloud Architecture** | Cloud Run serverless deployment |
+| **Secret Management** | GCP Secret Manager for API keys |
+| **Containerization** | Docker + Cloud Build for CI/CD |
+| **Full-Stack Engineering** | Backend (ADK agent) + Frontend (Streamlit) |
+| **Infrastructure as Code** | Dockerfile, SQL scripts, gcloud configurations |
+| **Error Handling** | Graceful degradation when services unavailable |
+| **API Design** | Clean interfaces between agent and tools |
+| **Configuration Management** | Environment-based config for dev/prod |
+| **DevOps** | Automated builds, deployments, and secret injection |
+
+---
+
+## ☁️ Deploy Your Own
+
+<details>
+<summary><b>Click to expand: Full Cloud Deployment Guide</b></summary>
+
+This project is deployed on **Google Cloud Platform** using serverless architecture:
+
+### Architecture
+
+```
+┌─────────────────┐
+│   Cloud Run     │  Containerized Streamlit app
+│   (Serverless)  │  Auto-scaling, HTTPS, managed
+└────────┬────────┘
+         │
+         ├──────────► Secret Manager (Gemini API Key)
+         ├──────────► BigQuery ML (Prediction models)
+         └──────────► Container Registry (Docker images)
+```
 
 ### Prerequisites
 
-- Python 3.12+ 
-- [Free Gemini API Key](https://aistudio.google.com/app/apikey) (15 req/min, 1M tokens/day)
-- (Optional) Google Cloud account for BigQuery ML
+- Google Cloud account with billing enabled
+- [gcloud CLI](https://cloud.google.com/sdk/docs/install) installed
+- Docker (for local builds) or Cloud Build access
 
-### Installation
+### One-Time Setup
+
+#### 1. Create GCP Project
+
+```bash
+# Create project
+gcloud projects create YOUR-PROJECT-ID --name="Warranty Prediction Agent"
+
+# Set as active project
+gcloud config set project YOUR-PROJECT-ID
+
+# Enable billing (required for Cloud Run)
+# Visit: https://console.cloud.google.com/billing/linkedaccount?project=YOUR-PROJECT-ID
+```
+
+#### 2. Enable Required APIs
+
+```bash
+gcloud services enable \
+  cloudbuild.googleapis.com \
+  run.googleapis.com \
+  secretmanager.googleapis.com \
+  bigquery.googleapis.com
+```
+
+#### 3. Store Gemini API Key in Secret Manager
+
+```bash
+# Create secret with your Gemini API key
+echo -n "YOUR_GEMINI_API_KEY" | gcloud secrets create gemini-api-key \
+  --data-file=- \
+  --replication-policy="automatic"
+
+# Grant Cloud Run access to the secret
+PROJECT_NUMBER=$(gcloud projects describe YOUR-PROJECT-ID --format="value(projectNumber)")
+gcloud secrets add-iam-policy-binding gemini-api-key \
+  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+#### 4. Setup BigQuery ML Models
+
+```bash
+# Create datasets
+bq mk --project_id=YOUR-PROJECT-ID --location=US --dataset warranty_data
+bq mk --project_id=YOUR-PROJECT-ID --location=US --dataset warranty_models
+
+# Run setup script to create sample data and train models
+bq query --project_id=YOUR-PROJECT-ID --use_legacy_sql=false < setup_bigquery.sql
+```
+
+This creates:
+- **1,000 sample vehicle records** for training
+- **Classification model** (predicts warranty claim probability)
+- **Regression model** (predicts warranty claim cost)
+
+### Deploy to Cloud Run
+
+#### Option 1: Using Cloud Build (Recommended)
+
+```bash
+# Build container image
+gcloud builds submit --tag gcr.io/YOUR-PROJECT-ID/warranty-agent
+
+# Deploy to Cloud Run
+gcloud run deploy warranty-agent \
+  --image gcr.io/YOUR-PROJECT-ID/warranty-agent \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars "GCP_PROJECT_ID=YOUR-PROJECT-ID" \
+  --set-secrets "GEMINI_API_KEY=gemini-api-key:latest" \
+  --memory 1Gi \
+  --timeout 300
+```
+
+#### Option 2: Using Local Docker
+
+```bash
+# Build locally
+docker build -t gcr.io/YOUR-PROJECT-ID/warranty-agent .
+
+# Push to Container Registry
+docker push gcr.io/YOUR-PROJECT-ID/warranty-agent
+
+# Deploy (same as above)
+gcloud run deploy warranty-agent \
+  --image gcr.io/YOUR-PROJECT-ID/warranty-agent \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars "GCP_PROJECT_ID=YOUR-PROJECT-ID" \
+  --set-secrets "GEMINI_API_KEY=gemini-api-key:latest" \
+  --memory 1Gi \
+  --timeout 300
+```
+
+### Verify Deployment
+
+```bash
+# Check service status
+gcloud run services describe warranty-agent --region us-central1
+
+# View logs
+gcloud run services logs read warranty-agent --region us-central1 --limit=50
+
+# Get service URL
+gcloud run services describe warranty-agent --region us-central1 --format='value(status.url)'
+```
+
+### Cost Estimate
+
+With free tier limits, expected monthly cost: **$0-2**
+
+- **Cloud Build:** First 120 build-minutes/day free
+- **Cloud Run:** 2M requests/month free, 360k GB-seconds memory free
+- **BigQuery:** 1 TB queries/month free, 10 GB storage free
+- **Secret Manager:** First 6 secret accesses free
+
+### Update Deployment
+
+After making code changes:
+
+```bash
+# Rebuild and redeploy
+gcloud builds submit --tag gcr.io/YOUR-PROJECT-ID/warranty-agent && \
+gcloud run deploy warranty-agent \
+  --image gcr.io/YOUR-PROJECT-ID/warranty-agent \
+  --platform managed \
+  --region us-central1
+```
+</details>
+
+---
+
+## 💻 Local Development
+
+<details>
+<summary><b>Click to expand: Run locally for development</b></summary>
+
+### Prerequisites
+
+- Python 3.12+
+- [Free Gemini API Key](https://aistudio.google.com/app/apikey)
+- Google Cloud account with BigQuery access (required for predictions)
+
+### Setup
 
 ```bash
 # 1. Clone repository
@@ -107,19 +308,44 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Configure Gemini API
-export GEMINI_API_KEY="your-api-key-here"
-
-# Optional: Configure BigQuery (for full ML functionality)
+# 4. Configure environment
+export GEMINI_API_KEY="your-gemini-api-key"
 export GCP_PROJECT_ID="your-gcp-project-id"
 
-# 5. Run application
+# 5. Authenticate with Google Cloud
+gcloud auth application-default login
+
+# 6. Run application
 streamlit run tools/app.py
 ```
 
-Open your browser to [http://localhost:8501](http://localhost:8501) 🎉
+Open [http://localhost:8501](http://localhost:8501) in your browser.
 
-**Note:** The chat interface works immediately with just the Gemini API key. BigQuery is optional for the ML prediction features.
+### Adding New Agent Tools
+
+**1. Define tool in `tools/tools.py`:**
+```python
+def your_new_tool(parameter: str) -> str:
+    """Brief description - the agent reads this to understand when to use it."""
+    result = your_logic(parameter)
+    return f"Result: {result}"
+```
+
+**2. Register in `agent_host_frontend/agent.py`:**
+```python
+from tools.tools import predict_warranty_cost, your_new_tool
+
+root_agent = Agent(
+    model=model,
+    tools=[predict_warranty_cost, your_new_tool],  # Add here
+    system_instruction="...",
+)
+```
+
+The agent automatically learns when to use your tool based on its docstring!
+
+</details>
+
 
 ---
 
@@ -143,6 +369,9 @@ warranty-prediction-agent/
 │
 ├── config.py                      # Centralized configuration
 ├── requirements.txt               # Python dependencies
+├── Dockerfile                     # Container image definition
+├── .dockerignore                  # Docker build exclusions
+├── setup_bigquery.sql             # BigQuery dataset & model setup
 ├── QUICK_REFERENCE.py            # Developer command reference
 └── README.md                      # This file
 ```
@@ -182,99 +411,6 @@ FROM ML.PREDICT(
 
 ### 5. Response Generation
 Agent formats ML results into conversational response and streams back to user.
-
----
-
-## 🎓 What This Demonstrates
-
-This portfolio project showcases production-ready skills:
-
-| **Skill** | **Implementation** |
-|-----------|-------------------|
-| **AI Agent Development** | Google ADK framework with autonomous tool calling |
-| **LLM Integration** | Gemini API for natural language understanding |
-| **Tool Orchestration** | Agent decides which Python functions to call |
-| **ML Model Deployment** | BigQuery ML models in production workflows |
-| **Full-Stack Engineering** | Backend (ADK agent) + Frontend (Streamlit) |
-| **Cloud Architecture** | GCP services integration (BigQuery, AI APIs) |
-| **Error Handling** | Graceful degradation when services unavailable |
-| **API Design** | Clean interfaces between agent and tools |
-| **Configuration Management** | Environment-based config for dev/prod |
-
----
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Create a `.env` file or set in your shell:
-
-```bash
-# Required: Gemini API Key
-GEMINI_API_KEY="your-api-key-from-google-ai-studio"
-
-# Optional: GCP Project for BigQuery ML
-GCP_PROJECT_ID="your-gcp-project-id"
-
-# Optional: Proxy settings (if behind corporate firewall)
-HTTP_PROXY="http://proxy.example.com:8080"
-HTTPS_PROXY="http://proxy.example.com:8080"
-```
-
-### Getting a Gemini API Key
-
-1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key"
-4. Copy and set: `export GEMINI_API_KEY="your-key"`
-
-**Free tier:** 15 requests/minute, 1 million tokens/day (plenty for development and demos)
-
----
-
-## 🛠️ Development
-
-### Adding New Tools
-
-The agent can be extended with new capabilities:
-
-**1. Define tool function in `tools/tools.py`:**
-```python
-def your_new_tool(parameter: str) -> str:
-    """Brief description for the AI agent.
-    
-    The agent will read this docstring to understand when to use this tool.
-    """
-    result = your_logic(parameter)
-    return f"Result: {result}"
-```
-
-**2. Register in `agent_host_frontend/agent.py`:**
-```python
-from tools.tools import predict_warranty_cost, your_new_tool
-
-root_agent = Agent(
-    model=model,
-    tools=[predict_warranty_cost, your_new_tool],  # Add here
-    system_instruction="...",
-)
-```
-
-The agent automatically learns when to use your tool based on its description!
-
-### Running in Development Mode
-
-```bash
-# Standard mode (Streamlit only)
-streamlit run tools/app.py
-
-# Full ADK development server (advanced)
-# Terminal 1:
-adk web --port 8080
-
-# Terminal 2:
-cd tools && streamlit run app.py
-```
 
 ---
 

@@ -119,49 +119,73 @@ if prompt := st.chat_input("Ask the ADK Agent..."):
         async def get_adk_response():
             runner = st.session_state.adk_runner
             text_response = ""
+            max_retries = 3
+            base_delay = 2  # seconds
             
-            # Let's ensure session exists using get_session (or create)
-            session_service = runner.session_service
-            session = await session_service.get_session(
-                app_name=runner.app_name, 
-                user_id=st.session_state.user_id, 
-                session_id=st.session_state.session_id
-            )
-            if not session:
-                await session_service.create_session(
-                    app_name=runner.app_name,
-                    user_id=st.session_state.user_id,
-                    session_id=st.session_state.session_id
-                )
+            for attempt in range(max_retries):
+                try:
+                    # Let's ensure session exists using get_session (or create)
+                    session_service = runner.session_service
+                    session = await session_service.get_session(
+                        app_name=runner.app_name, 
+                        user_id=st.session_state.user_id, 
+                        session_id=st.session_state.session_id
+                    )
+                    if not session:
+                        await session_service.create_session(
+                            app_name=runner.app_name,
+                            user_id=st.session_state.user_id,
+                            session_id=st.session_state.session_id
+                        )
 
-            events = runner.run_async(
-                user_id=st.session_state.user_id,
-                session_id=st.session_state.session_id,
-                new_message=types.UserContent(parts=[types.Part(text=prompt)])
-            )
-            
-            status_placeholder.text("🤔 Thinking...")
-            
-            async for event in events:
-                # Check for tool calls
-                if event.content:
-                    for part in event.content.parts:
-                        if part.function_call:
-                            tool_name = part.function_call.name
-                            # Convert args to string if possible for display
-                            args = part.function_call.args
-                            status_placeholder.info(f"🛠️ Calling tool: `{tool_name}` with `{args}`")
+                    events = runner.run_async(
+                        user_id=st.session_state.user_id,
+                        session_id=st.session_state.session_id,
+                        new_message=types.UserContent(parts=[types.Part(text=prompt)])
+                    )
+                    
+                    status_placeholder.text("🤔 Thinking...")
+                    
+                    async for event in events:
+                        # Check for tool calls
+                        if event.content:
+                            for part in event.content.parts:
+                                if part.function_call:
+                                    tool_name = part.function_call.name
+                                    # Convert args to string if possible for display
+                                    args = part.function_call.args
+                                    status_placeholder.info(f"🛠️ Calling tool: `{tool_name}` with `{args}`")
 
-                # Capture messages from both 'model' and the agent itself (e.g. 'root_agent')
-                # Filter out tool calls/responses if only final text is desired
-                if (event.author == 'model' or event.author == runner.agent.name) and event.content:
-                    for part in event.content.parts:
-                        if part.text:
-                            text_response += part.text
+                        # Capture messages from both 'model' and the agent itself (e.g. 'root_agent')
+                        # Filter out tool calls/responses if only final text is desired
+                        if (event.author == 'model' or event.author == runner.agent.name) and event.content:
+                            for part in event.content.parts:
+                                if part.text:
+                                    text_response += part.text
+                    
+                    status_placeholder.empty() # Clear status when done
+                    cleaned_response = clean_adk_response(text_response)
+                    return cleaned_response
+                    
+                except Exception as e:
+                    error_str = str(e)
+                    # Check if it's a rate limit error (429)
+                    if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "quota" in error_str.lower():
+                        if attempt < max_retries - 1:
+                            # Exponential backoff: 2s, 4s, 8s
+                            delay = base_delay * (2 ** attempt)
+                            status_placeholder.warning(f"⏳ Rate limit hit. Retrying in {delay}s... (attempt {attempt + 1}/{max_retries})")
+                            await asyncio.sleep(delay)
+                            text_response = ""  # Reset for retry
+                            continue
+                        else:
+                            # Final attempt failed
+                            raise Exception(f"Rate limit exceeded after {max_retries} attempts. Please try again in a few minutes.")
+                    else:
+                        # Non-rate-limit error, raise immediately
+                        raise
             
-            status_placeholder.empty() # Clear status when done
-            cleaned_response = clean_adk_response(text_response)
-            return cleaned_response
+            return ""  # Fallback (shouldn't reach here)
 
         try:
             # Run the async loop - use existing event loop if available
